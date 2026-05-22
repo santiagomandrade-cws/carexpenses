@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import httpx
@@ -58,7 +59,8 @@ async def _download_audio(message_data: dict) -> bytes:
 async def _handle_audio(data: dict, jid: str) -> dict:
     try:
         audio_bytes = await _download_audio(data)
-        text = transcribe_audio(audio_bytes)
+        loop = asyncio.get_event_loop()
+        text = await loop.run_in_executor(None, transcribe_audio, audio_bytes)
     except Exception as e:
         logger.error("Erro ao processar áudio: %s", e)
         await _send_reply(jid, f"Não consegui processar o áudio. Erro: {e}")
