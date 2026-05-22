@@ -2,8 +2,11 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
+from zoneinfo import ZoneInfo
 
 import dateparser
+
+_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 @dataclass
@@ -79,7 +82,7 @@ _DELTA_RELATIVO = {'hoje': 0, 'ontem': -1, 'anteontem': -2}
 
 
 def _extract_datetime(text: str) -> Tuple[datetime, str]:
-    now = datetime.now().replace(second=0, microsecond=0)
+    now = datetime.now(tz=_TZ).replace(second=0, microsecond=0)
 
     for pattern, kind in _DATE_PATTERNS:
         m = pattern.search(text)
