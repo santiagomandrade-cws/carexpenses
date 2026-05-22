@@ -37,7 +37,7 @@ async def _send_reply(to_jid: str, text: str) -> None:
     headers = {"apikey": EVOLUTION_API_KEY}
     async with httpx.AsyncClient(timeout=10) as client:
         try:
-            await client.post(url, json={"number": to_jid, "text": text}, headers=headers)
+            await client.post(url, json={"number": to_jid, "textMessage": {"text": text}}, headers=headers)
         except Exception as e:
             logger.error("Erro ao enviar resposta WhatsApp: %s", e)
 
