@@ -3,7 +3,7 @@ import logging
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Request
 
-from app.config import EVOLUTION_API_KEY, EVOLUTION_API_URL, EVOLUTION_INSTANCE, GROUP_JID, WEBHOOK_SECRET
+from app.config import EVOLUTION_API_KEY, EVOLUTION_API_URL, EVOLUTION_INSTANCE, GROUP_JID, NOTIFY_JID, WEBHOOK_SECRET
 from app.parser import parse_message
 from app.sheets import append_expense
 from app.transcriber import transcribe_audio
@@ -99,8 +99,7 @@ async def receive_webhook(
         return {"status": "ignored"}
 
     remote_jid = data.get("key", {}).get("remoteJid", "")
-    participant = data.get("key", {}).get("participant") or data.get("participant", "")
-    jid = participant if participant else remote_jid
+    jid = NOTIFY_JID if NOTIFY_JID else remote_jid
 
     if _is_audio(data):
         return await _handle_audio(data, jid)
