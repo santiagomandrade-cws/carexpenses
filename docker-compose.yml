@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
 
   evolution:
-    image: atendai/evolution-api:v2.2.3
+    image: atendai/evolution-api:v1.8.2
     ports:
       - "8080:8080"
     environment:
@@ -19,24 +19,8 @@ services:
       - AUTHENTICATION_API_KEY=${EVOLUTION_AUTH_KEY}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       - QRCODE_LIMIT=10
-      - DATABASE_ENABLED=true
-      - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution@postgres:5432/evolution
-      - DATABASE_SAVE_DATA_INSTANCE=true
-      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-      - DATABASE_SAVE_MESSAGE_UPDATE=true
-      - DATABASE_SAVE_DATA_CONTACTS=true
-      - DATABASE_SAVE_DATA_CHATS=true
-      - CACHE_REDIS_ENABLED=true
-      - CACHE_REDIS_URI=redis://redis:6379/1
-      - CACHE_REDIS_PREFIX_KEY=evolution
-      - CACHE_REDIS_SAVE_INSTANCES=false
-      - CACHE_LOCAL_ENABLED=false
     volumes:
       - evolution_data:/evolution/instances
-    depends_on:
-      - postgres
-      - redis
     restart: unless-stopped
 
   postgres:
