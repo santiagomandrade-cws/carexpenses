@@ -33,6 +33,11 @@ def _should_ignore(data: dict) -> bool:
     return False
 
 
+def _fmt_expense(expense) -> str:
+    valor = f"R$ {expense.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"✅ {valor} registrado em {expense.date} — {expense.description}"
+
+
 async def _send_reply(to_jid: str, text: str) -> None:
     url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
     headers = {"apikey": EVOLUTION_API_KEY}
@@ -78,6 +83,7 @@ async def _handle_audio(data: dict, jid: str) -> dict:
 
     append_expense(expense)
     logger.info("Gasto por áudio registrado: %s", expense)
+    await _send_reply(jid, _fmt_expense(expense))
     return {"status": "ok", "transcription": text, "expense": {
         "value": expense.value,
         "description": expense.description,
@@ -118,6 +124,7 @@ async def receive_webhook(
 
     append_expense(expense)
     logger.info("Gasto registrado: %s", expense)
+    await _send_reply(jid, _fmt_expense(expense))
     return {"status": "ok", "expense": {
         "value": expense.value,
         "description": expense.description,
