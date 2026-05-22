@@ -98,7 +98,9 @@ async def receive_webhook(
     if _should_ignore(data):
         return {"status": "ignored"}
 
-    jid = data.get("key", {}).get("remoteJid", "")
+    remote_jid = data.get("key", {}).get("remoteJid", "")
+    participant = data.get("key", {}).get("participant") or data.get("participant", "")
+    jid = participant if participant else remote_jid
 
     if _is_audio(data):
         return await _handle_audio(data, jid)
