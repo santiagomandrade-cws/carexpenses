@@ -13,7 +13,7 @@ def _get_model() -> whisper.Whisper:
     global _model
     if _model is None:
         logger.info("Carregando modelo Whisper tiny...")
-        _model = whisper.load_model("tiny")
+        _model = whisper.load_model("small")
         logger.info("Modelo Whisper pronto.")
     return _model
 
