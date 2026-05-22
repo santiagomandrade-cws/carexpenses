@@ -32,30 +32,46 @@ def _should_ignore(data: dict) -> bool:
     return False
 
 
+async def _send_reply(to_jid: str, text: str) -> None:
+    url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
+    headers = {"apikey": EVOLUTION_API_KEY}
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            await client.post(url, json={"number": to_jid, "text": text}, headers=headers)
+        except Exception as e:
+            logger.error("Erro ao enviar resposta WhatsApp: %s", e)
+
+
 async def _download_audio(message_data: dict) -> bytes:
     """Baixa o áudio via Evolution API e retorna os bytes raw."""
-    url = f"{EVOLUTION_API_URL}/message/downloadMediaMessage/{EVOLUTION_INSTANCE}"
+    import base64
+    url = f"{EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/{EVOLUTION_INSTANCE}"
     headers = {"apikey": EVOLUTION_API_KEY}
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(url, json={"message": message_data}, headers=headers)
         r.raise_for_status()
-        return r.content
+        data = r.json()
+        b64 = data.get("base64", "")
+        return base64.b64decode(b64)
 
 
-async def _handle_audio(data: dict) -> dict:
+async def _handle_audio(data: dict, jid: str) -> dict:
     try:
         audio_bytes = await _download_audio(data)
         text = transcribe_audio(audio_bytes)
     except Exception as e:
         logger.error("Erro ao processar áudio: %s", e)
+        await _send_reply(jid, f"Não consegui processar o áudio. Erro: {e}")
         return {"status": "audio_error", "detail": str(e)}
 
     if not text:
+        await _send_reply(jid, "Não consegui entender o áudio.")
         return {"status": "audio_empty"}
 
     expense = parse_message(text)
     if not expense:
         logger.info("Áudio transcrito sem valor identificável: %s", text)
+        await _send_reply(jid, f"Não encontrei nenhum valor no áudio.\nTranscrição: _{text}_")
         return {"status": "no_expense_found", "transcription": text}
 
     append_expense(expense)
@@ -82,8 +98,10 @@ async def receive_webhook(
     if _should_ignore(data):
         return {"status": "ignored"}
 
+    jid = data.get("key", {}).get("remoteJid", "")
+
     if _is_audio(data):
-        return await _handle_audio(data)
+        return await _handle_audio(data, jid)
 
     text = _extract_text(data)
     if not text:
@@ -92,6 +110,7 @@ async def receive_webhook(
     expense = parse_message(text)
     if not expense:
         logger.info("Mensagem sem valor identificável: %s", text)
+        await _send_reply(jid, f"Não encontrei nenhum valor na mensagem: _{text}_")
         return {"status": "no_expense_found"}
 
     append_expense(expense)
