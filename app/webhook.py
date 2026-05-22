@@ -35,7 +35,7 @@ def _should_ignore(data: dict) -> bool:
 
 def _fmt_expense(expense) -> str:
     valor = f"R$ {expense.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"✅ {valor} registrado em {expense.date} — {expense.description}"
+    return f"🚗 *CarExpenses*\n✅ {valor} registrado em {expense.date}\n_{expense.description}_"
 
 
 async def _send_reply(to_jid: str, text: str) -> None:
