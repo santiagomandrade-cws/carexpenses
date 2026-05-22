@@ -71,7 +71,9 @@ _DATE_PATTERNS = [
     (re.compile(r'\bdia\s+(\d{1,2}/\d{1,2}/\d{2,4})\b', re.I),     'dia_data_completa'),
     (re.compile(r'\b(\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})\b'),       'data_curta_hora'),
     (re.compile(r'\bdia\s+(\d{1,2}/\d{1,2})\b', re.I),              'dia_data_curta'),
+    (re.compile(r'\bdia\s+(\d{1,2})-(\d{1,2})\b', re.I),           'dia_data_traco'),
     (re.compile(r'\b(\d{1,2}/\d{1,2})\b'),                          'data_curta'),
+    (re.compile(r'\bdia\s+(\d{1,2})\b', re.I),                      'dia_numero'),
     (re.compile(r'\b(anteontem)\b', re.I),                           'relativa'),
     (re.compile(r'\b(ontem)\b', re.I),                               'relativa'),
     (re.compile(r'\b(hoje)\b', re.I),                                'relativa'),
@@ -110,6 +112,19 @@ def _extract_datetime(text: str) -> Tuple[datetime, str]:
             parsed = dateparser.parse(date_str, languages=['pt'],
                                       settings={'DATE_ORDER': 'DMY'})
             return (parsed if parsed else now), cleaned
+
+        if kind == 'dia_data_traco':
+            day, month = int(m.group(1)), int(m.group(2))
+            try:
+                return now.replace(day=day, month=month), cleaned
+            except ValueError:
+                return now, cleaned
+
+        if kind == 'dia_numero':
+            try:
+                return now.replace(day=int(m.group(1))), cleaned
+            except ValueError:
+                return now, cleaned
 
         # Apenas data (sem hora) → mantém hora atual
         date_part = m.group(1)
