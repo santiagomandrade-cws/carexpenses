@@ -1,0 +1,25 @@
+# Ambiente
+.env
+.venv/
+venv/
+
+# Credenciais Google (nunca subir pro git)
+credentials.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Testes
+.pytest_cache/
+.coverage
+
+# Arquivos de áudio temporários
+*.ogg
+*.mp3
+*.wav
+*.m4a

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+gspread
+google-auth
+dateparser
+openai-whisper
+pydub
+python-multipart
+httpx
+pytest
