@@ -35,7 +35,7 @@ def append_expense(expense: Expense) -> None:
 
 def get_monthly_summary(year: int, month: int) -> dict:
     sheet = get_sheet()
-    rows = sheet.get_all_records()
+    rows = sheet.get_all_records(value_render_option='UNFORMATTED_VALUE')
     expenses = []
     for row in rows:
         try:
