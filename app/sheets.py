@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -29,3 +31,18 @@ def append_expense(expense: Expense) -> None:
         expense.value,
         expense.raw_message,
     ])
+
+
+def get_monthly_summary(year: int, month: int) -> dict:
+    sheet = get_sheet()
+    rows = sheet.get_all_records()
+    expenses = []
+    for row in rows:
+        try:
+            d = datetime.strptime(row.get("Data", ""), "%d/%m/%Y")
+            if d.year == year and d.month == month:
+                expenses.append(row)
+        except ValueError:
+            continue
+    total = sum(float(row.get("Valor (R$)", 0) or 0) for row in expenses)
+    return {"total": total, "count": len(expenses), "expenses": expenses}

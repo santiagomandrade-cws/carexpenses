@@ -1,16 +1,75 @@
 import asyncio
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from app.config import EVOLUTION_API_KEY, EVOLUTION_API_URL, EVOLUTION_INSTANCE, GROUP_JID, NOTIFY_JID, WEBHOOK_SECRET
 from app.parser import parse_message
-from app.sheets import append_expense
+from app.sheets import append_expense, get_monthly_summary
 from app.transcriber import transcribe_audio
+
+_TZ = ZoneInfo("America/Sao_Paulo")
+_MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun",
+               "jul", "ago", "set", "out", "nov", "dez"]
+
+_COMMANDS_TOTAL = {"total", "gastos", "gastei", "quanto gastei"}
+_COMMANDS_RESUMO = {"resumo", "relatório", "relatorio"}
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _detect_command(text: str) -> str | None:
+    normalized = text.strip().lower()
+    if normalized in _COMMANDS_TOTAL or any(normalized.startswith(c + " ") for c in _COMMANDS_TOTAL):
+        return "total"
+    if normalized in _COMMANDS_RESUMO or any(normalized.startswith(c + " ") for c in _COMMANDS_RESUMO):
+        return "resumo"
+    return None
+
+
+def _fmt_currency(value: float) -> str:
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+async def _handle_command(command: str, jid: str) -> dict:
+    now = datetime.now(tz=_TZ)
+    summary = get_monthly_summary(now.year, now.month)
+    total = summary["total"]
+    count = summary["count"]
+    expenses = summary["expenses"]
+    month_label = f"{_MONTHS_PT[now.month - 1]}/{now.year}"
+    plural = "s" if count != 1 else ""
+
+    if command == "total":
+        msg = (
+            f"🚗 *CarExpenses*\n"
+            f"📊 *Total {month_label}*\n"
+            f"💰 {_fmt_currency(total)}\n"
+            f"📋 {count} lançamento{plural}"
+        )
+    else:
+        lines = [
+            f"🚗 *CarExpenses*",
+            f"📊 *Resumo {month_label}*",
+            f"💰 {_fmt_currency(total)} — {count} lançamento{plural}",
+        ]
+        if expenses:
+            lines.append("")
+            lines.append("*Últimos lançamentos:*")
+            for e in reversed(expenses[-5:]):
+                date_short = e.get("Data", "")[:5]
+                desc = e.get("Descrição", "sem descrição")
+                val = _fmt_currency(float(e.get("Valor (R$)", 0) or 0))
+                lines.append(f"• {date_short} – {desc} – {val}")
+        msg = "\n".join(lines)
+
+    await _send_reply(jid, msg)
+    logger.info("Comando '%s' respondido: total=%s count=%d", command, total, count)
+    return {"status": "ok", "command": command, "total": total, "count": count}
 
 
 def _extract_text(data: dict) -> str | None:
@@ -115,6 +174,10 @@ async def receive_webhook(
     text = _extract_text(data)
     if not text:
         return {"status": "ignored"}
+
+    command = _detect_command(text)
+    if command:
+        return await _handle_command(command, jid)
 
     expense = parse_message(text)
     if not expense:
