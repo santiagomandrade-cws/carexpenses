@@ -134,6 +134,10 @@ async def _handle_audio(data: dict, jid: str) -> dict:
         await _send_reply(jid, "Não consegui entender o áudio.")
         return {"status": "audio_empty"}
 
+    command = _detect_command(text)
+    if command:
+        return await _handle_command(command, jid)
+
     expense = parse_message(text)
     if not expense:
         logger.info("Áudio transcrito sem valor identificável: %s", text)
