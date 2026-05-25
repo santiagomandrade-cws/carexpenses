@@ -17,6 +17,9 @@ _MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun",
 
 _COMMANDS_TOTAL = {"total", "gastos", "gastei", "quanto gastei"}
 _COMMANDS_RESUMO = {"resumo", "relatório", "relatorio"}
+# Apenas estas palavras são seguras como prefixo — "gastei/gastos" iniciam frases de gasto
+_COMMANDS_TOTAL_PREFIX = {"total"}
+_COMMANDS_RESUMO_PREFIX = {"resumo", "relatório", "relatorio"}
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,9 +27,9 @@ router = APIRouter()
 
 def _detect_command(text: str) -> str | None:
     normalized = text.strip().lower()
-    if normalized in _COMMANDS_TOTAL or any(normalized.startswith(c + " ") for c in _COMMANDS_TOTAL):
+    if normalized in _COMMANDS_TOTAL or any(normalized.startswith(c + " ") for c in _COMMANDS_TOTAL_PREFIX):
         return "total"
-    if normalized in _COMMANDS_RESUMO or any(normalized.startswith(c + " ") for c in _COMMANDS_RESUMO):
+    if normalized in _COMMANDS_RESUMO or any(normalized.startswith(c + " ") for c in _COMMANDS_RESUMO_PREFIX):
         return "resumo"
     return None
 
