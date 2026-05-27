@@ -26,7 +26,7 @@ router = APIRouter()
 
 
 def _detect_command(text: str) -> str | None:
-    normalized = text.strip().lower()
+    normalized = text.strip().lower().strip('.,!?;:…"\'')
     if normalized in _COMMANDS_TOTAL or any(normalized.startswith(c + " ") for c in _COMMANDS_TOTAL_PREFIX):
         return "total"
     if normalized in _COMMANDS_RESUMO or any(normalized.startswith(c + " ") for c in _COMMANDS_RESUMO_PREFIX):
