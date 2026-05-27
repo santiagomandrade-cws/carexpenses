@@ -22,6 +22,47 @@ class Expense:
 # Ordenado do mais específico ao mais genérico para evitar falsos positivos.
 # Suporta formato brasileiro (ponto = milhar, vírgula = decimal).
 
+# ── Normalização de números por extenso ───────────────────────────────────────
+
+_NUM_MAP = {
+    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2,
+    'três': 3, 'tres': 3, 'quatro': 4, 'cinco': 5, 'seis': 6,
+    'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'onze': 11,
+    'doze': 12, 'treze': 13, 'quatorze': 14, 'catorze': 14,
+    'quinze': 15, 'dezesseis': 16, 'dezessete': 17, 'dezoito': 18,
+    'dezenove': 19, 'vinte': 20, 'trinta': 30, 'quarenta': 40,
+    'cinquenta': 50, 'sessenta': 60, 'setenta': 70, 'oitenta': 80,
+    'noventa': 90, 'cem': 100, 'cento': 100, 'duzentos': 200,
+    'duzentas': 200, 'trezentos': 300, 'trezentas': 300,
+    'quatrocentos': 400, 'quatrocentas': 400, 'quinhentos': 500,
+    'quinhentas': 500, 'seiscentos': 600, 'seiscentas': 600,
+    'setecentos': 700, 'setecentas': 700, 'oitocentos': 800,
+    'oitocentas': 800, 'novecentos': 900, 'novecentas': 900,
+}
+
+_NUM_WORDS_RE_STR = '|'.join(re.escape(w) for w in sorted(_NUM_MAP, key=len, reverse=True))
+_NUM_SEQ_RE = re.compile(
+    rf'\b(?:{_NUM_WORDS_RE_STR})(?:\s+e\s+(?:{_NUM_WORDS_RE_STR}))*\b',
+    re.I | re.UNICODE,
+)
+_INNER_NUM_RE = re.compile(rf'\b({_NUM_WORDS_RE_STR})\b', re.I | re.UNICODE)
+
+
+def _normalize_number_words(text: str) -> str:
+    """Converte números por extenso para dígitos: 'vinte e dois' → '22', 'dois mil' → '2000'."""
+    def _replace(m: re.Match) -> str:
+        words = [_NUM_MAP[w.lower()] for w in _INNER_NUM_RE.findall(m.group(0))]
+        return str(sum(words))
+
+    text = _NUM_SEQ_RE.sub(_replace, text)
+    text = re.sub(r'\b(\d+)\s+mil\s+e\s+(\d+)\b',
+                  lambda m: str(int(m.group(1)) * 1000 + int(m.group(2))), text, flags=re.I)
+    text = re.sub(r'\b(\d+)\s+mil\b',
+                  lambda m: str(int(m.group(1)) * 1000), text, flags=re.I)
+    text = re.sub(r'\bmil\b', '1000', text, flags=re.I)
+    return text
+
+
 _VALUE_PATTERNS = [
     re.compile(r'R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})', re.I),    # R$ 1.500,00
     re.compile(r'R\$\s*(\d+,\d{2})', re.I),                     # R$ 150,50
@@ -146,8 +187,9 @@ def parse_message(text: str) -> Optional[Expense]:
         return None
 
     raw = text.strip()
+    normalized = _normalize_number_words(raw)
 
-    value, after_value = _extract_value(raw)
+    value, after_value = _extract_value(normalized)
     if value is None:
         return None
 
